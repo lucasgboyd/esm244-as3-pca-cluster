@@ -1,0 +1,99 @@
+---
+title: "Global Climatic Variables PCA (task 1)"
+author: "Lucas Boyd"
+date: "2/15/2022"
+output: html_document
+---
+
+### Introduction
+
+In the following report, we examine climatic variables for 227 different countries all over the world. First, a subset of data is created to include our variables of interest. Then, we run principle components analysis to discover general trends and correlations among our variables of interest. Results of the PCA analysis visualized in a biplot and summarized in the report's conclusion.
+
+**Data Citation:**
+
+### Setup and data wrangling
+
+```{r setup, include=TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+# attach packages
+library(tidyverse)
+library(here)
+library(broom)
+library(janitor)
+library(ggfortify)
+library(autoplotly)
+
+```
+
+**Variables of interest**
+
+-   Slope - average angle of slope across country's land area
+
+-   Elevation - average elevation of country's land area (m)
+
+-   Cropland cover - percentage of country covered by cropland
+
+-   Tree canopy cover - percentage of country covered by trees
+
+-   Mean annual temperature (degrees C)
+
+-   Mean annual rainfall (mm)
+
+**NA values:** Countries with missing values among our variables of interest were removed from the dataset. This reduced the total number of countries from 243 to the 227 that this report examines. 
+
+```{r}
+# reading in the country climate data
+climate <- read_csv(here("data", "world_env_vars.csv")) %>% 
+  clean_names() %>% 
+  select(1:7, rain_mean_annual, temp_mean_annual, -accessibility_to_cities, -aspect) %>% # selecting for variables of interest to run in the PCA
+  drop_na() %>% # removing NA values that won't run in the PCA
+  rename("Elevation" = elevation, # renaming variables for professional display in biplot
+         "Slope" = slope,
+         "Cropland cover" = cropland_cover,
+         "Tree canopy cover" = tree_canopy_cover,
+         "Mean annual temperature" = temp_mean_annual,
+         "Mean annual rainfall" = rain_mean_annual)
+
+```
+
+### Principle components analysis
+
+```{r}
+# running the PCA
+climate_pca <- climate %>%
+  select(-country) %>% # removing the country variable since it is non-numeric and won't run with PCA
+  scale() %>% # scaling the data to get everything in relative units
+  prcomp() # running the scaled data through PCA
+
+```
+
+```{r}
+# creating a biplot
+autoplot(climate_pca, # putting the PCA as the input
+         data = climate, # running it on the climate data
+         loadings = TRUE, # customizing autoplot to show loadings
+         loadings.label = TRUE, # labeling loadings
+         loadings.label.colour = "forestgreen", # loading label color
+         loadings.label.vjust = -0.5, # adjusting labels
+         loadings.label.hjust = 0) +
+  theme_classic()
+```
+
+**Fig. 1** shows the results of principle components analysis of global climate data. Each point represents one of the 224 countries included in the analysis. Length of arrows represent the proportion of variance explained by the given variable.
+
+### Conclusions
+
+After running principle components analysis on our subset of global climate data, we can conclude:
+
+-   Tree canopy cover and cropland cover are highly negative correlated. This indicates that countries with agricultural land use are less likely to be forested.
+
+-   Elevation and mean annual temperature are negatively correlated. This is an expected trend, as temperature decreases with elevation.
+
+-   Tree canopy cover and mean annual rainfall are positively correlated, indicating that forests are growing in areas of high precipitation.
+
+-   Interestingly, mean annual rainfall and cropland cover are negatively correlated, showing that many countries must be using alternative methods of watering crops other than relying on natural precipitation.
+
+-   Going forward, we suggest more research be done to examine the link between land cover and precipitation trends. 
+
+### End Task 1
