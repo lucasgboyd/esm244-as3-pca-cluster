@@ -1,0 +1,98 @@
+---
+title: "Cluster Analysis (task 2)"
+author: "Lucas Boyd"
+date: "2/15/2022"
+output: html_document
+---
+
+### Introduction
+
+In the following report, we examine stream water chemistry measurements taken in Santa Barbara area watersheds, beginning in 2000. First, we find the mean of each chemical indicator across time at each measurement site. Then, agglomerative hierarchical clustering analysis is used to discover trends and grouping in the data. The findings of the cluster analysis are summarized in a dendrogram and conclusions at the end of the report.
+
+**Data Citation:** Santa Barbara Coastal LTER and J. Melack. 2019. SBC LTER: Land: Stream chemistry in the Santa Barbara Coastal drainage area, ongoing since 2000 ver 16. Environmental Data Initiative. <https://doi.org/10.6073/pasta/67a558a24ceed9a0a5bf5e46ab841174> (Accessed 2022-02-15).
+
+```{r setup, include=TRUE, message = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+# attach packages
+library(tidyverse)
+library(here)
+library(janitor)
+library(ggdendro)
+
+```
+
+### Wrangling data for use in analysis
+
+```{r}
+# reading in LTER streams data
+
+streams <- read_csv(here("data", "sbc.csv")) %>% 
+  clean_names() %>% 
+  na_if(-999) %>% # changing -999 values to NA
+  select(-timestamp_local) %>% # removing timestamp from df
+  group_by(site_code) %>% # grouping by site
+  summarize(
+    "Ammonium" = mean(nh4_u_m, na.rm = TRUE), # finding the mean of each chemical indicator across each site
+    "Nitrate" = mean(no3_u_m, na.rm = TRUE),
+    "Phosphorous" = mean(po4_u_m, na.rm = TRUE),
+    "Dissolved nitrogen" = mean(tdn_u_m, na.rm = TRUE),
+    "Dissolved phosphorous" = mean(tdp_u_m, na.rm = TRUE),
+    "Particulate carbon" = mean(tpc_u_m, na.rm = TRUE),
+    "Particulate nitrogen" = mean(tpn_u_m, na.rm = TRUE),
+    "Particulate phosphorous" = mean(tpp_u_m, na.rm = TRUE),
+    "Suspended solids" = mean(tss_mgper_liter, na.rm = TRUE),
+    "Specific conductivity" = mean(spec_cond_u_spercm, na.rm = TRUE)
+  )
+```
+
+### Hierarchical clustering analysis
+
+```{r}
+# scale the data
+streams_scaled <- streams %>% 
+  select(2:11) %>% # remove the non numerical variable of stream code
+  scale()
+
+# add back the site code to the now scaled stream data
+rownames(streams_scaled) <- streams$site_code 
+ 
+# create a matrix of the euclidian distance between points
+streams_dist <- dist(streams_scaled, method = 'euclidean') 
+ 
+# running the hierarchical clustering analysis
+streams_complete <- hclust(streams_dist, method = "complete") # complete linkage
+
+# making three cuts based on the dendrogram
+streams_cut_hc <- cutree(streams_complete, 3)
+
+# creating a table with the clusters created from the 3 cuts
+streams_cut_table <- data.frame(streams, streams_cut_hc)
+```
+
+### Visualizing results
+
+```{r}
+# visualizing the cluster analysis with a finalized dendrogram
+ggdendrogram(streams_complete, rotate = FALSE) +
+  theme(axis.text.x = element_text(angle = 360, 
+                                   hjust = 0.5, 
+                                   vjust = 8)) +
+  theme_minimal() +
+  labs(x = "Stream Code", y = "Euclidian distance")
+  
+  
+```
+
+**Fig. 1** visualizes the results of agglomerative hierarchical clustering. Analysis was performed using complete linkage and Euclidian distance to determine proximity of observations and clusters.
+
+### Conclusions
+
+Based on the results of complete linkage agglomerative hierarchical clustering analysis we can conclude:
+
+-   Stream site DV01 was put into its own cluster, indicating that it has distinct chemical markers compared to other streams.
+
+-   There appear to be two other distinct clusters, giving us three total clusters of streams with similar water chemistry
+
+-   More research should be done to examine the chemical composition of these clusters of streams to determine what environmental variables contribute to observed differences in water chemistry.
+
+### End task 2
