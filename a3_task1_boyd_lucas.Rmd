@@ -73,8 +73,9 @@ climate_pca <- climate %>%
 autoplot(climate_pca, # putting the PCA as the input
          data = climate, # running it on the climate data
          loadings = TRUE, # customizing autoplot to show loadings
+         loadings.colour = "forestgreen",
          loadings.label = TRUE, # labeling loadings
-         loadings.label.colour = "forestgreen", # loading label color
+         loadings.label.colour = "firebrick", # loading label color
          loadings.label.vjust = -0.5, # adjusting labels
          loadings.label.hjust = 0) +
   theme_classic()
